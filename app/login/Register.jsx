@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from './../../config/FirebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import {
   StyleSheet,
   Text,
@@ -18,39 +18,45 @@ const Register = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-const [name,setName]=useState();
-  const OnCreateAccount = () => {
+  const [name, setName] = useState('');
+
+  const OnCreateAccount = async () => {
     if (!email || !password || !name) {
-      ToastAndroid.show("Please fill All Details", ToastAndroid.BOTTOM);
-      Alert.alert("Please fill All Details");
+      ToastAndroid.show('Please fill all details', ToastAndroid.BOTTOM);
+      Alert.alert('Please fill all details');
       return;
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(async(userCredential) => {
-        // Signed up
-        const user = userCredential.user;
-        await updateProfile(user,{
-          displayName:name
-        })
-        console.log(user);
-       await setLocalStorage('userDetail',user);
-        router.push('(tabs)/Home');
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.log("Error Code: ", errorCode, "Error Message", errorMessage);
-        if (errorCode === 'auth/email-already-in-use') {
-          ToastAndroid.show("Email already exists", ToastAndroid.BOTTOM);
-          Alert.alert('Email already exists');
-        }
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Update the Firebase user profile with the display name
+      await updateProfile(user, { displayName: name });
+
+      // Save user details to local storage
+      await setLocalStorage('userDetail', {
+        displayName: name,
+        email: user.email,
+        uid: user.uid,
       });
+
+      router.push('(tabs)/Home');
+    } catch (error) {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log('Error Code: ', errorCode, 'Error Message: ', errorMessage);
+
+      if (errorCode === 'auth/email-already-in-use') {
+        ToastAndroid.show('Email already exists', ToastAndroid.BOTTOM);
+        Alert.alert('Email already exists');
+      }
+    }
   };
 
   return (
     <ImageBackground
-      source={require('./../../assets/images/auth.jpeg')} // Local background image
+      source={require('./../../assets/images/auth.jpeg')}
       style={styles.background}
     >
       <View style={styles.overlay}>
@@ -60,7 +66,8 @@ const [name,setName]=useState();
             style={styles.input}
             placeholder="Full Name"
             placeholderTextColor="#d1d1d1"
-            onChange={(val)=>setName(val)}
+            value={name}
+            onChangeText={setName}
           />
           <TextInput
             style={styles.input}
@@ -83,10 +90,7 @@ const [name,setName]=useState();
           </TouchableOpacity>
           <Text style={styles.loginText}>
             Already have an account?{' '}
-            <Text
-              style={styles.loginLink}
-              onPress={() => router.push('login/SignIn')}
-            >
+            <Text style={styles.loginLink} onPress={() => router.push('login/SignIn')}>
               Login
             </Text>
           </Text>
@@ -107,13 +111,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   glassContainer: {
     width: '85%',
     padding: 20,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Glassmorphism effect
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',

@@ -1,12 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Image, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Image, Text, TouchableOpacity ,ScrollView} from 'react-native';
 import Colors from '@/constants/Colors'; // Ensure this path is correct
 import { useRouter } from 'expo-router';
 
 const Home = () => {
   const router = useRouter();
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Background Image */}
       <Image
         source={require('./../../assets/images/login.jpg')} // Ensure this path is correct
@@ -30,7 +30,7 @@ const Home = () => {
           NOTE: By clicking Continue, you agree to our Terms and Conditions.
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
