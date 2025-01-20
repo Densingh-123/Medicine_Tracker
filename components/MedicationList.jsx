@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,21 +7,24 @@ import {
   FlatList,
   TouchableOpacity,
   Animated,
+  ActivityIndicator, // Import the ActivityIndicator for loading effect
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { getDateRangeToDiplay } from '../service/ConvertDateTime';
 import moment from 'moment';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { getLocalStorage } from '../service/Storage';
 import { db } from '../config/FirebaseConfig';
+import { getLocalStorage } from '../service/Storage';
+import { getDateRangeToDiplay } from '../service/ConvertDateTime';
 import MedicationCardItem from './MedicationCardItem';
+import EmptyState from './EmptyState';
+import { useRouter } from 'expo-router';
 
 const MedicationList = () => {
   const [medList, setMedList] = useState([]);
   const [dateRange, setDateRange] = useState([]);
   const [selectedDate, setSelectedDate] = useState(moment().format('MM/DD/YYYY'));
   const [scale] = useState(new Animated.Value(1));
-
+  const [loading, setLoading] = useState(false); // State for loading
+const router = useRouter();
   useEffect(() => {
     fetchDateRangeList();
   }, []);
@@ -29,11 +33,13 @@ const MedicationList = () => {
     fetchMedicationList(selectedDate);
   }, [selectedDate]);
 
+  // Fetch date ranges for the selector
   const fetchDateRangeList = () => {
     const dateRange = getDateRangeToDiplay();
     setDateRange(dateRange);
   };
 
+  // Handle the press on a specific date
   const handlePress = (formatDate) => {
     setSelectedDate(formatDate);
     Animated.spring(scale, {
@@ -51,29 +57,38 @@ const MedicationList = () => {
     });
   };
 
+  // Fetch medications for the selected date
   const fetchMedicationList = async (selectedDate) => {
+    setLoading(true); // Set loading to true while fetching data
     const user = await getLocalStorage('userDetail');
     if (!user || !user.email) {
       console.error('User details are missing.');
+      setLoading(false);
       return;
     }
 
     try {
       const q = query(
         collection(db, 'medications'),
-        where('userEmail', '==', user.email),
+        where('userEmail', '==', user?.email),
         where('dates', 'array-contains', selectedDate)
       );
 
       const querySnapshot = await getDocs(q);
       const medications = [];
       querySnapshot.forEach((doc) => {
-        medications.push({ id: doc.id, ...doc.data() });
+        const data = { id: doc.id, ...doc.data() };
+        medications.push(data);
       });
+
+      // Log the fetched medications to the console
+      console.log('Fetched Medications:', medications);
 
       setMedList(medications);
     } catch (error) {
       console.error('Error fetching medication list:', error);
+    } finally {
+      setLoading(false); // Set loading to false after fetching
     }
   };
 
@@ -89,7 +104,10 @@ const MedicationList = () => {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => handlePress(item.formatDate)}
+            onPress={() => {
+              handlePress(item.formatDate);
+              fetchMedicationList(item.formatDate);
+            }}
             activeOpacity={0.7}
             style={[
               styles.dateGroup,
@@ -112,18 +130,30 @@ const MedicationList = () => {
       />
 
       {/* Medication List */}
-      <FlatList
-        data={medList}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MedicationCardItem medicine={item} />}
-        ListEmptyComponent={<Text style={styles.noData}>No medications found for this date.</Text>}
-      />
+      {loading ? (
+        // Show loading indicator while fetching
+        <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />
+      ) : medList.length > 0 ? (
+        <FlatList
+          data={medList}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity activeOpacity={0.7} onPress={() =>router.push('login/ActionModel') }>
+              <MedicationCardItem medicine={item} />
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={<Text style={styles.noData}>No medications found for this date.</Text>}
+        />
+      ) : (
+        <EmptyState style={styles.emptyState} />
+      )}
     </View>
   );
 };
 
 export default MedicationList;
 
+// Styling
 const styles = StyleSheet.create({
   container: {
     marginTop: 25,
@@ -162,5 +192,15 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 20,
+  },
+  loader: {
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+  emptyState: {
+    marginTop:110, // Adjust the margin to position the EmptyState at the top
+    alignItems: 'center',
+    justifyContent: 'center',
+    height:120
   },
 });

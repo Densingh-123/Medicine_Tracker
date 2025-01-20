@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { getLocalStorage } from '../service/Storage';
 
-const EmptyState = () => {
+const EmptyState = ({ style }) => {
   const router = useRouter();
   const [user, setUser] = useState(null); // State to hold user info
   const [loading, setLoading] = useState(true); // Loading state
@@ -37,7 +37,8 @@ const EmptyState = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
+     
       <Image source={require('./../assets/images/medicine.png')} style={styles.image} />
       <Text style={styles.title}>No Medications Found!</Text>
       <Text style={styles.subtitle}>
@@ -46,7 +47,6 @@ const EmptyState = () => {
       <TouchableOpacity
         style={styles.button}
         onPress={() => router.push('login/AddMedicine')}
-
       >
         <Text style={styles.buttonText}>+ Add New Medication</Text>
       </TouchableOpacity>
@@ -58,11 +58,12 @@ export default EmptyState;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    justifyContent:'center',
     alignItems: 'center',
-    justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f9f9f9',
+    position: 'relative',
+   
   },
   image: {
     width: 180,
