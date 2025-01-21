@@ -24,7 +24,8 @@ const MedicationList = () => {
   const [selectedDate, setSelectedDate] = useState(moment().format('MM/DD/YYYY'));
   const [scale] = useState(new Animated.Value(1));
   const [loading, setLoading] = useState(false); // State for loading
-const router = useRouter();
+  const router = useRouter();
+
   useEffect(() => {
     fetchDateRangeList();
   }, []);
@@ -70,7 +71,7 @@ const router = useRouter();
     try {
       const q = query(
         collection(db, 'medications'),
-        where('userEmail', '==', user?.email),
+        where('userEmail', '==', user.email),
         where('dates', 'array-contains', selectedDate)
       );
 
@@ -81,7 +82,6 @@ const router = useRouter();
         medications.push(data);
       });
 
-      // Log the fetched medications to the console
       console.log('Fetched Medications:', medications);
 
       setMedList(medications);
@@ -131,15 +131,30 @@ const router = useRouter();
 
       {/* Medication List */}
       {loading ? (
-        // Show loading indicator while fetching
         <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />
       ) : medList.length > 0 ? (
         <FlatList
           data={medList}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity activeOpacity={0.7} onPress={() =>router.push('login/ActionModel') }>
-              <MedicationCardItem medicine={item} />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() =>
+                router.push({
+                  pathname: 'login/ActionModel',
+                  params: {
+                    docId: item.id,
+                    name: item.name,
+                    dosage: item.dosage,
+                    time: item.time,
+                    selectedDate,
+                    type: item.type,
+                    endDate: item.endDate,
+                  },
+                })
+              }
+            >
+              <MedicationCardItem medicine={item} selectedDate={selectedDate}/>
             </TouchableOpacity>
           )}
           ListEmptyComponent={<Text style={styles.noData}>No medications found for this date.</Text>}
@@ -198,9 +213,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   emptyState: {
-    marginTop:110, // Adjust the margin to position the EmptyState at the top
+    marginTop: 110,
     alignItems: 'center',
     justifyContent: 'center',
-    height:120
+    height: 120,
   },
 });
